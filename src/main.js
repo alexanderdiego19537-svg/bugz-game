@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Boss } from './entities/Boss.js';
 
 // ─── ESCENA DEL MENÚ ─────────────────────────────
 class MenuScene extends Phaser.Scene {
@@ -125,6 +126,27 @@ class GameScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D
     });
 
+    // ── CONTROLES EXTRA — TECLA B PARA SPAWNEAR BOSS (DEBUG) ───
+    this.input.keyboard.on('keydown-B', () => {
+      if (!this.bossActive) {
+        this.enemies.forEach(e => {
+          e.alive = false;
+          e.gfx.clear();
+          e.hpGfx.clear();
+        });
+        this.enemies = [];
+        this.enemiesThisWave = 0;
+        this.boss = new Boss(this);
+        this.bossActive = true;
+        const W = this.scale.width;
+        if (this.bossNameText) this.bossNameText.destroy();
+        this.bossNameText = this.add.text(W/2, 32, 'SEGMENTATION FAULT (DEBUG)', {
+          fontFamily: 'monospace', fontSize: '12px',
+          color: '#FF0055', letterSpacing: 4
+        }).setOrigin(0.5, 0);
+      }
+    });
+
     // ── ENEMIGOS ───────────────────────────────
     this.enemies = [];
 
@@ -157,6 +179,10 @@ class GameScene extends Phaser.Scene {
 
     // ── TIEMPO ─────────────────────────────────
     this.gameTime = 0;
+
+    // ── BOSS ───────────────────────────────────
+    this.boss = null;
+    this.bossActive = false;
 
     // ── INICIA OLEADA ──────────────────────────
     this.startWave();
@@ -192,6 +218,21 @@ class GameScene extends Phaser.Scene {
 
     // Texto de oleada
     this.showWaveText('OLEADA ' + this.wave);
+
+    if (this.wave % 5 === 0) {
+      // Oleada de boss — no spawnear enemigos normales
+      this.enemiesThisWave = 0;
+      this.time.delayedCall(1000, () => {
+        this.boss = new Boss(this);
+        this.bossActive = true;
+        // Texto HP del boss
+        const W = this.scale.width;
+        this.bossNameText = this.add.text(W/2, 32, 'SEGMENTATION FAULT', {
+          fontFamily: 'monospace', fontSize: '12px',
+          color: '#FF0055', letterSpacing: 4
+        }).setOrigin(0.5, 0);
+      });
+    }
   }
 
   showWaveText(text) {
@@ -568,6 +609,11 @@ class GameScene extends Phaser.Scene {
       this.shoot(this.p2);
     }
 
+    // ── Mueve Boss ───────────────────────────
+    if (this.boss && this.boss.alive) {
+      this.boss.update(delta, time, [this.p1, this.p2]);
+    }
+
     // ── Mueve enemigos ───────────────────────
     this.enemies.forEach(e => {
       if (!e.alive) return;
@@ -606,6 +652,14 @@ class GameScene extends Phaser.Scene {
       }
       b.x += b.vx * (delta / 1000);
       b.y += b.vy * (delta / 1000);
+
+      // Golpea Boss
+      if (this.boss && this.boss.alive && b.alive) {
+        if (this.boss.checkBulletHit(b)) {
+          b.alive = false;
+          b.gfx.destroy();
+        }
+      }
 
       // Golpea enemigos
       this.enemies.forEach(e => {
@@ -665,6 +719,18 @@ class GameScene extends Phaser.Scene {
 
     // ── Dibuja barras HP ─────────────────────
     this.drawHPBars();
+  }
+
+  onBossDead() {
+    this.bossActive = false;
+    if (this.bossNameText) this.bossNameText.destroy();
+    this.score += 1000; // Bonus por matar al boss
+    this.scoreText.setText('SCORE: ' + this.score.toLocaleString());
+    this.time.delayedCall(2000, () => {
+      this.wave++;
+      this.waveText.setText('OLEADA ' + this.wave);
+      this.startWave();
+    });
   }
 }
 
