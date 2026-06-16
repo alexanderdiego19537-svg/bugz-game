@@ -458,11 +458,18 @@ class MenuScene extends Phaser.Scene{
       fontFamily:'monospace',fontSize:'8px',color:'#444444'
     }).setOrigin(0.5);
 
-    // Best score
-    let best=0;try{best=parseInt(localStorage.getItem(SK)||'0')}catch(e){}
-    if(best>0)this.add.text(W/2,H*0.93,'HIGH SCORE: '+best.toLocaleString(),{
+    const scoreText=this.add.text(W/2,H*0.93,'',{
       fontFamily:'monospace',fontSize:'11px',color:'#FFD700'
     }).setOrigin(0.5);
+    const storage=window.platanusArcadeStorage;
+    if(storage){
+      storage.get(SK).then(res=>{
+        if(res&&res.found&&res.value)scoreText.setText('HIGH SCORE: '+parseInt(res.value.score||'0').toLocaleString());
+      }).catch(e=>{});
+    }else{
+      let best=0;try{best=parseInt(localStorage.getItem(SK)||'0')}catch(e){}
+      if(best>0)scoreText.setText('HIGH SCORE: '+best.toLocaleString());
+    }
 
     this.pg1=this.add.graphics();this.pg2=this.add.graphics();
   }
@@ -1235,8 +1242,6 @@ class OverScene extends Phaser.Scene{
   create(data){
     setupInput(this);
     const sc=data.sc||0;
-    let best=0;try{best=parseInt(localStorage.getItem(SK)||'0')}catch(e){}
-    best=Math.max(sc,best);try{localStorage.setItem(SK,best)}catch(e){}
 
     this.add.rectangle(W/2,H/2,W,H,0x050510);
     // Grid
@@ -1256,9 +1261,27 @@ class OverScene extends Phaser.Scene{
     this.add.text(W/2,H*0.46,sc.toLocaleString(),{
       fontFamily:'monospace',fontSize:'44px',fontStyle:'bold',color:'#FFD700'
     }).setOrigin(0.5);
-    this.add.text(W/2,H*0.57,'BEST: '+best.toLocaleString(),{
+
+    const bestText=this.add.text(W/2,H*0.57,'',{
       fontFamily:'monospace',fontSize:'13px',color:'#AAAAAA'
     }).setOrigin(0.5);
+
+    const storage=window.platanusArcadeStorage;
+    if(storage){
+      storage.get(SK).then(res=>{
+        let best=0;
+        if(res&&res.found&&res.value)best=parseInt(res.value.score||'0');
+        best=Math.max(sc,best);
+        bestText.setText('BEST: '+best.toLocaleString());
+        storage.set(SK,{score:best}).catch(e=>{});
+      }).catch(e=>{
+        bestText.setText('BEST: '+sc.toLocaleString());
+      });
+    }else{
+      let best=0;try{best=parseInt(localStorage.getItem(SK)||'0')}catch(e){}
+      best=Math.max(sc,best);try{localStorage.setItem(SK,best)}catch(e){}
+      bestText.setText('BEST: '+best.toLocaleString());
+    }
 
     // Stats
     this.add.text(W/2,H*0.67,'PRESS START TO PLAY AGAIN',{
