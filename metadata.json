@@ -1,0 +1,5 @@
+{
+  "game_name": "BUGZ",
+  "description": "El Programador vs Los Bugs - A top-down co-op arcade shooter where two programmers fight waves of programming errors using code as weapons. Features 5 enemy types, epic boss fights every 5 levels, changing environments, power-ups, and procedurally generated retro sounds. Made for Platanus Hack 26 CDMX.",
+  "player_mode": "two_player"
+}

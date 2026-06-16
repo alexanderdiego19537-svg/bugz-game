@@ -3,6 +3,8 @@
 // Emiliano: este es tu archivo principal mañana
 // ═══════════════════════════════════════════════════════════
 
+import { Sprites } from '../visuals/Sprites.js';
+
 export class Boss {
   constructor(scene) {
     this.scene = scene;
@@ -36,6 +38,9 @@ export class Boss {
     // ── Entrada dramática ────────────────────
     this.scene.cameras.main.shake(400, 0.02);
     this._showAnnouncement();
+    if (scene.sfx && scene.sfx.bossAppear) {
+      scene.sfx.bossAppear();
+    }
   }
 
   // ─── Anuncio de entrada ──────────────────
@@ -76,67 +81,8 @@ export class Boss {
     this.hpGfx.clear();
     if (!this.alive) return;
 
-    this.angle += 0.015;
-    this.eyeAngle += 0.04;
-
     const flash = this.flashTimer > 0;
-    const r = 48;
-
-    // Colores según fase
-    const phaseColors = [0xFF0055, 0xFF6600, 0xFF0000];
-    const col = flash ? 0xFFFFFF : phaseColors[this.phase - 1];
-
-    // Glow exterior (más intenso en fases altas)
-    const glowR = r + 16 + this.phase * 6;
-    this.gfx.fillStyle(col, 0.06);
-    this.gfx.fillCircle(this.x, this.y, glowR + 10);
-    this.gfx.fillStyle(col, 0.10);
-    this.gfx.fillCircle(this.x, this.y, glowR);
-
-    // Cuerpo — hexágono (dibujado como polígono)
-    this.gfx.fillStyle(col);
-    this._drawHex(this.x, this.y, r, this.angle);
-
-    // Núcleo interior (más oscuro)
-    this.gfx.fillStyle(0x110005);
-    this._drawHex(this.x, this.y, r * 0.55, -this.angle * 1.5);
-
-    // Ojo central pulsante
-    const eyeSize = 14 + Math.sin(this.eyeAngle) * 4;
-    this.gfx.fillStyle(flash ? 0xFF0000 : 0xFF0055);
-    this.gfx.fillCircle(this.x, this.y, eyeSize);
-    this.gfx.fillStyle(0xFFFFFF, 0.9);
-    this.gfx.fillCircle(
-      this.x + Math.cos(this.eyeAngle) * 4,
-      this.y + Math.sin(this.eyeAngle) * 3,
-      eyeSize * 0.4
-    );
-
-    // Picos orbitando en fase 2+
-    if (this.phase >= 2) {
-      for (let i = 0; i < 4; i++) {
-        const a = this.angle * 2 + (i * Math.PI / 2);
-        const px = this.x + Math.cos(a) * (r + 20);
-        const py = this.y + Math.sin(a) * (r + 20);
-        this.gfx.fillStyle(flash ? 0xFFFFFF : 0xFF6600);
-        this.gfx.fillTriangle(
-          px, py - 10,
-          px - 6, py + 6,
-          px + 6, py + 6
-        );
-      }
-    }
-
-    // Aura extra en fase 3
-    if (this.phase >= 3) {
-      for (let i = 0; i < 6; i++) {
-        const a = this.angle * -1.5 + (i * Math.PI / 3);
-        const px = this.x + Math.cos(a) * (r + 36);
-        const py = this.y + Math.sin(a) * (r + 36);
-        this.gfx.fillStyle(0xFF0000, 0.5);
-        this.gfx.fillCircle(px, py, 5);
-      }
-    }
+    Sprites.drawBoss(this.gfx, this.x, this.y, this.phase, time, flash);
 
     // ── Barra de vida del boss ───────────────
     this._drawHPBar();

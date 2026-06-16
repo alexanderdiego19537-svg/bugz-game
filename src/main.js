@@ -1,5 +1,11 @@
 import Phaser from 'phaser';
 import { Boss } from './entities/Boss.js';
+import { Sprites } from './visuals/Sprites.js';
+import { SoundSystem } from './visuals/SoundSystem.js';
+import { UISystem } from './visuals/UISystem.js';
+
+// ─── SONIDO GLOBAL ────────────────────────────────
+const sfx = new SoundSystem();
 
 // ─── ESCENA DEL MENÚ ─────────────────────────────
 class MenuScene extends Phaser.Scene {
@@ -59,6 +65,8 @@ class MenuScene extends Phaser.Scene {
 
     // Escuchar Enter para ir al juego
     this.input.keyboard.on('keydown-ENTER', () => {
+      sfx.init();
+      sfx.menuSelect();
       this.scene.start('GameScene');
     });
   }
@@ -448,7 +456,7 @@ class GameScene extends Phaser.Scene {
   // ─── DISPARO AUTOMÁTICO ──────────────────────
   shoot(player) {
     if (player.hp <= 0) return;
-    if (this.enemies.length === 0) return;
+    if (this.enemies.length === 0 && !(this.boss && this.boss.alive)) return;
 
     // Encuentra el enemigo más cercano
     let nearest = null;
@@ -459,7 +467,16 @@ class GameScene extends Phaser.Scene {
       if (d < minDist) { minDist = d; nearest = e; }
     });
 
+    // También buscar el boss como objetivo
+    if (this.boss && this.boss.alive) {
+      const db = Math.hypot(this.boss.x - player.x, this.boss.y - player.y);
+      if (db < minDist) { minDist = db; nearest = { x: this.boss.x, y: this.boss.y }; }
+    }
+
     if (!nearest) return;
+
+    // Sonido de disparo
+    sfx.shoot(player.weaponLevel);
 
     const angle = Math.atan2(nearest.y - player.y, nearest.x - player.x);
     const speed = 520;
@@ -522,6 +539,7 @@ class GameScene extends Phaser.Scene {
     player.invTimer = 700;
     this.cameras.main.shake(180, 0.01);
     this.spawnFloat(player.x, player.y - 30, '-' + dmg, '#FF4444');
+    sfx.playerHurt();
     if (player.hp <= 0) {
       this.checkGameOver();
     }
@@ -529,6 +547,7 @@ class GameScene extends Phaser.Scene {
 
   checkGameOver() {
     if (this.p1.hp <= 0 && this.p2.hp <= 0) {
+      sfx.gameOver();
       this.time.delayedCall(800, () => {
         this.scene.start('GameOverScene', { score: this.score });
       });
@@ -679,6 +698,13 @@ class GameScene extends Phaser.Scene {
             this.spawnExplosion(e.x, e.y, e.col);
             e.gfx.clear();
             e.hpGfx.clear();
+            // Sonido de muerte según tipo
+            if (e.type === 'syntaxerror' || e.type === 'stackoverflow') {
+              sfx.enemyDieBig();
+            } else {
+              sfx.enemyDie();
+            }
+
             this.checkWeaponUpgrade();
           }
         }
